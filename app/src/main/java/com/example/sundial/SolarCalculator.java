@@ -51,4 +51,21 @@ public class SolarCalculator {
         return julianDate - J2000Epoch;
     }
 
+    private double calculateMeanSolarAnomaly() {
+        double days = daysSinceJ2000(dateTime);
+        return (357.5291 + 0.98560028 * days) % 360; // ensures anomaly is within 0-360 degrees
+        // 357.5291 represents the mean anomaly at the J2000 epoch
+        // 0.98560028 adjusts the anomaly to the current date
+    }
+
+    // Adjust for the elliptical shape of Earth's orbit via the Equation of Center
+    // C = 1.9148 sin(mean-solar-anomaly-in-radians) + 0.0200 sin (2 * mean-solar-anomaly-in-radians)
+    // + 0.0003 sin(3 * mean-solar-anomaly-in-radians)
+    private double calculateEquationOfCenter() {
+        double meanAnomaly = Math.toRadians(calculateMeanSolarAnomaly());
+        return (1.9148 * Math.sin(meanAnomaly) + 0.0200 * Math.sin(2 * meanAnomaly) + 0.0003 * Math.sin(3 * meanAnomaly));
+    }
+
+
+
 }
