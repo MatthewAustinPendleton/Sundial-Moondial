@@ -17,6 +17,8 @@ public class SolarCalculator {
     // in days between any given date and this epoch.
     private static final double J2000Epoch = 2451545.0;
 
+    private double[] cachedAltitudeAzimuth;
+
     public SolarCalculator(double latitude, double longitude, Calendar dateTime) {
 
         this.latitude = latitude;
@@ -97,18 +99,14 @@ public class SolarCalculator {
 
     private double calculateSolarDeclination(double daysSinceJ2000) {
 
-        double meanAnomaly = (357.5291 + 0.98560028 * daysSinceJ2000) * DEGREES_TO_RADIANS;
-        double solarLongitude = (280.46646 + 0.98564736 * daysSinceJ2000 + 1.914602 * Math.sin(meanAnomaly) -
-                0.019993 * Math.sin(2 * meanAnomaly)) * DEGREES_TO_RADIANS;
+        double solarLongitude = calculateEclipticLongitude() * DEGREES_TO_RADIANS;
         return Math.asin(Math.sin(solarLongitude) * Math.sin(23.44 * DEGREES_TO_RADIANS)) * RADIANS_TO_DEGREES;
 
     }
 
     private double calculateRightAscension(double daysSinceJ2000) {
 
-        double meanAnomaly = (357.5291 + 0.98560028 * daysSinceJ2000) * DEGREES_TO_RADIANS;
-        double solarLongitude = (280.46646 + 0.98564736 * daysSinceJ2000 + 1.914602 * Math.sin(meanAnomaly) -
-                0.019993 * Math.sin(2 * meanAnomaly)) * DEGREES_TO_RADIANS;
+        double solarLongitude = calculateEclipticLongitude() * DEGREES_TO_RADIANS;
         double rightAscension = Math.atan2(Math.cos(23.44 * DEGREES_TO_RADIANS) * Math.sin(solarLongitude), Math.cos(solarLongitude));
         return rightAscension * RADIANS_TO_DEGREES;
 
@@ -126,5 +124,54 @@ public class SolarCalculator {
         return hourAngle;
 
     }
+
+    /*
+    The altitude, how high the sun is above the horizon, is one measure of the sun's location.
+    The azimuth, the sun's compass direction, is another.
+    These are determined from the declination, hour angle, and latitude.
+     */
+    private double[] calculateAltitudeAndAzimuth() {
+
+        double latitudeInRadians = latitude * DEGREES_TO_RADIANS;
+        double declinationInRadians = calculateSolarDeclination(daysSinceJ2000(dateTime)) * DEGREES_TO_RADIANS;
+        double hourAngleInRadians = calculateHourAngle(calculateRightAscension(daysSinceJ2000(dateTime))) * DEGREES_TO_RADIANS;
+
+        // Calculate the altitude
+        double sinAltitude = Math.sin(latitudeInRadians) * Math.sin(declinationInRadians) +
+                Math.cos(latitudeInRadians) * Math.cos(declinationInRadians) * Math.cos(hourAngleInRadians);
+        double altitude = Math.asin(sinAltitude) * RADIANS_TO_DEGREES;
+
+        // Calculate the azimuth
+        double cosAzimuth = (Math.sin(declinationInRadians) - Math.sin(altitude * DEGREES_TO_RADIANS) * Math.sin(latitudeInRadians)) /
+                (Math.cos(altitude * DEGREES_TO_RADIANS) * Math.cos(latitudeInRadians));
+        double azimuth = Math.acos(cosAzimuth) * RADIANS_TO_DEGREES;
+
+        if (hourAngleInRadians > 0) {
+            azimuth = 360 - azimuth;
+        }
+
+        return new double[]{altitude, azimuth};
+
+    } // returns a two-element array containing {altitude, azimuth}
+
+    public double getAltitude() {
+
+        if (cachedAltitudeAzimuth == null) {
+            cachedAltitudeAzimuth = calculateAltitudeAndAzimuth();
+        }
+        return cachedAltitudeAzimuth[0];
+
+    }
+
+    public double getAzimuth() {
+
+        if (cachedAltitudeAzimuth == null) {
+            cachedAltitudeAzimuth = calculateAltitudeAndAzimuth();
+        }
+        return cachedAltitudeAzimuth[1];
+
+    }
+
+
 
 }
