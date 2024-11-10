@@ -28,9 +28,15 @@ public class SolarCalculator {
         Log.d("Constructor", "Immediately after Solar Calculator is constructed, the latitude is: " + latitude);
         this.longitude = longitude;
         Log.d("Constructor","Immediately after Solar Calculator is constructed, the longitude is: " + longitude);
-        this.dateTime = dateTime;
+
+        Calendar utcDateTime = (Calendar) dateTime.clone();
+        utcDateTime.setTimeZone(TimeZone.getTimeZone("UTC"));
+        utcDateTime.getTimeInMillis(); // Forces recalculation in UTC
+        this.dateTime = utcDateTime;
+        Log.d("Time Zone Check", "UTC Date and Time after initialization: " + this.dateTime.toString());
+
+
         Log.d("Constructor", "Immediately after Solar Calculator is constructed, the dateTime is: " + dateTime.toString());
-        dateTime.setTimeZone(TimeZone.getTimeZone("UTC"));
         Log.d("Constructor", "                                                          ");
 
     }
