@@ -74,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void displaySunPosition() {
+
         // Get the current date and time
         Calendar currentTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
