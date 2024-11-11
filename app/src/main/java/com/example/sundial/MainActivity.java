@@ -75,19 +75,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void displaySunPosition() {
 
-        // Get the current date and time
-        Calendar currentTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        // Get the current time in milliseconds
+        long nowMillis = System.currentTimeMillis();
 
-        // Create an instance of SolarCalculator with latitude, longitude, and current time
-        SolarCalculator solarCalculator = new SolarCalculator(latitude, longitude, currentTime);
+        SolarCalculator solarCalculator = new SolarCalculator(latitude, longitude, nowMillis);
 
-        // Retrieve altitude and azimuth
         double altitude = solarCalculator.getAltitude();
         double azimuth = solarCalculator.getAzimuth();
 
-        // Display altitude and azimuth using Toast
         Log.d("SunPosition", "Latitude: " + latitude + ", Longitude: " + longitude);
         Log.d("SunPosition", "Altitude: " + altitude + ", Azimuth: " + azimuth);
+
     }
 
 }

@@ -21,7 +21,7 @@ public class SolarCalculator {
 
     private double[] cachedAltitudeAzimuth;
 
-    public SolarCalculator(double latitude, double longitude, Calendar dateTime) {
+    public SolarCalculator(double latitude, double longitude, long timeInMillis) {
 
         Log.d("Constructor","==========CONSTRUCTOR==========");
         this.latitude = latitude;
@@ -29,9 +29,8 @@ public class SolarCalculator {
         this.longitude = longitude;
         Log.d("Constructor","Immediately after Solar Calculator is constructed, the longitude is: " + longitude);
 
-        Calendar utcDateTime = (Calendar) dateTime.clone();
-        utcDateTime.setTimeZone(TimeZone.getTimeZone("UTC"));
-        utcDateTime.getTimeInMillis(); // Forces recalculation in UTC
+        Calendar utcDateTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        utcDateTime.setTimeInMillis(timeInMillis);
         this.dateTime = utcDateTime;
         Log.d("Time Zone Check", "UTC Date and Time after initialization: " + this.dateTime.toString());
 
@@ -45,51 +44,48 @@ public class SolarCalculator {
 
         Log.d("Calculate Julian Date", "==========CALCULATE JULIAN DATE==========");
         int year = dateTime.get(Calendar.YEAR);
-        Log.d("Calculate Julian Date", "The year is set to " + year);
         int month = dateTime.get(Calendar.MONTH) + 1; // Calendar months are 0-based
-        Log.d("Calculate Julian Date", "The month is set to " + month);
         int day = dateTime.get(Calendar.DAY_OF_MONTH);
-        Log.d("Calculate Julian Date", "The day is set to " + day);
         int hour = dateTime.get(Calendar.HOUR_OF_DAY);
-        Log.d("Calculate Julian Date", "The hour is set to " + hour);
         int minute = dateTime.get(Calendar.MINUTE);
-        Log.d("Calculate Julian Date", "The minute is set to " + minute);
         int second = dateTime.get(Calendar.SECOND);
-        Log.d("Calculate Julian Date", "The second is set to " + second);
-
-        // Log the date and time for debugging purposes
-        Log.d("Date and Time", String.format("UTC Date and Time: %04d-%02d-%02d %02d:%02d:%02d",
-                year, month, day, hour, minute, second));
 
         // For January and February, treat them as months 13 and 14 of the previous year
         if (month <= 2) {
-            Log.d("Calculate Julian Date", "The month is less than or equal to 2, so...");
-            year --;
-            Log.d("Calculate Julian Date", "Subtract 1 from the year, giving us: year = " + year);
+            year--;
             month += 12;
-            Log.d("Calculate Julian Date", "Add 12 to the month, giving us: month = " + month);
         }
 
         int A = year / 100;
-        Log.d("Calculate Julian Date", "A is set to year / 100, giving us: A = " + A);
         int B = 2 - A + (A / 4);
-        Log.d("Calculate Julian Date", "B is set to 2 - A + (A / 4), giving us: B = " + B);
 
-        double secondsInDay = second / 86400.0;
-        double minutesInDay = minute / 1440.0;
-        double hoursInDay = hour / 24.0;
-        double dayFraction = hoursInDay + minutesInDay + secondsInDay;
-        Log.d("Calculate Julian Date", "Calculating dayFraction to be " + dayFraction);
-        Log.d("Calculate Julian Date", "This was obtained via the formula: dayFraction = (hour + (minute + second / 60.0) / 60.0) / 24.0");
+        double dayFraction = (hour + minute / 60.0 + second / 3600.0) / 24.0;
+        Log.d("Calculate Julian Date", "Unrounded dayFraction = " + dayFraction);
 
-        double julianDate = Math.floor(365.25 * (year + 4716)) + Math.floor(30.600 * (month + 1)) + day + dayFraction + B - 1524.5;
-        Log.d("Calculate Julian Date", "Calculated Julian Date is: " + julianDate);
-        Log.d("Calculate Julian Date", "Given by the formula: julianDate = floor[365.25 * (year + 4716)] + floor[30.600 * (month + 1)] + day + dayFraction + B - 1524.5");
-        Log.d("Calculate Julian Date", "                                                          ");
+        double totalSeconds = hour * 3600 + minute * 60 + second;
+        double dayFractionAlternative = totalSeconds / 86400.0;
+        Log.d("Calculate Julian Date", "Alternative dayFraction calculation = " + dayFractionAlternative);
+
+        double term1 = Math.floor(365.25 * (year + 4716));
+        double term2 = Math.floor(30.6001 * (month + 1));
+        double term3 = day + dayFraction + B - 1524.5;
+
+        Log.d("Calculate Julian Date", "term1 (365.25 * (year + 4716)) = " + term1);
+        Log.d("Calculate Julian Date", "term2 (30.6001 * (month + 1)) = " + term2);
+        Log.d("Calculate Julian Date", "term3 (day + dayFraction + B - 1524.5) = " + term3);
+
+        double julianDate = term1 + term2 + term3;
+
+        // Only apply rounding to final Julian Date if needed
+        //julianDate = Math.round(julianDate * 1e5) / 1e5;
+        Log.d("Calculate Julian Date", "Julian Date: " + julianDate);
+
         return julianDate;
     }
 
-    private double daysSinceJ2000(Calendar dateTime) {
+
+
+    private double daysSinceJ2000() {
 
         Log.d("Days Since J2000", "==========DAYS SINCE J2000==========");
         Log.d("Days Since J2000", "J2000Epoch is " + J2000Epoch);
@@ -103,11 +99,11 @@ public class SolarCalculator {
     private double calculateMeanSolarAnomaly() {
 
         Log.d("Mean solar Anomaly", "==========CALCULATE MEAN SOLAR ANOMALY==========");
-        double daysSinceEpoch = daysSinceJ2000(dateTime);
+        double daysSinceEpoch = daysSinceJ2000();
         Log.d("Mean Solar Anomaly", "Reading days since epoch from daysSinceJ2000(dateTime) as: " + daysSinceEpoch);
-        double meanAnomalyDegrees = (357.5291 + 0.98564736 * daysSinceEpoch) % 360;
+        double meanAnomalyDegrees = (357.5291 + 0.98560028 * daysSinceEpoch) % 360;
         Log.d("Mean Solar Anomaly", "meanAnomalyDegrees is calculated in the following way: ");
-        Log.d("Mean Solar Anomaly", "meanAnomalyDegrees = (357.5291 + 0.98560028 * daysSinceEpoch) % 360 = " + meanAnomalyDegrees);
+        Log.d("Mean Solar Anomaly", "meanAnomalyDegrees = (357.5291 + 0.98564736 * daysSinceEpoch) % 360 = " + meanAnomalyDegrees);
         if (meanAnomalyDegrees < 0) meanAnomalyDegrees += 360;
         Log.d("Mean Solar Anomaly", "If meanAnomalyDegrees is less than 0, that is negative, then add 360 to it to make it positive.");
         Log.d("Mean Solar Anomaly", "Mean Solar Anomaly (degrees): " + meanAnomalyDegrees);
@@ -119,9 +115,21 @@ public class SolarCalculator {
     // Adjust for the elliptical shape of Earth's orbit via the Equation of Center
     // C = 1.9148 sin(mean-solar-anomaly-in-radians) + 0.0200 sin (2 * mean-solar-anomaly-in-radians)
     // + 0.0003 sin(3 * mean-solar-anomaly-in-radians)
-    private double calculateEquationOfCenter(double meanAnomaly) {
+    private double calculateEquationOfCenter(double meanAnomalyDegrees) {
 
         Log.d("Equation of Center", "==========CALCULATE EQUATION OF CENTER==========");
+        double M_rad = meanAnomalyDegrees * DEGREES_TO_RADIANS;
+        Log.d("Equation of Center", "Mean Anomaly in Radians: " + M_rad);
+        double T = daysSinceJ2000() / 36525.0; // Julian Centuries
+        Log.d("Equation of Center", "T = daysSinceJ2000() / 36525.0 = " + daysSinceJ2000() + " / 36525.0 = " + T);
+        double term1 = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M_rad);
+        double term2 = (0.019993 - 0.000101 * T) * Math.sin(2 * M_rad);
+        double term3 = 0.000289 * Math.sin(3 * M_rad);
+        double C = term1 + term2 + term3;
+        Log.d("Equation of Center", "Equation of Center (degrees): " + C);
+        return C;
+
+        /*Log.d("Equation of Center", "==========CALCULATE EQUATION OF CENTER==========");
         double M_rad = meanAnomaly * DEGREES_TO_RADIANS;
         Log.d("Equation of Center", "Mean Solar Anomaly (radians): " + M_rad);
         double term1 = 1.9148 * Math.sin(M_rad);
@@ -133,7 +141,7 @@ public class SolarCalculator {
         double C = term1 + term2 + term3;
         Log.d("Equation of Center", "Taken together, the terms become C = term1 + term2 + term3 = " + C);
         Log.d("Equation of Center", "                                                   ");
-        return C;
+        return C;*/
 
     }
 
@@ -205,11 +213,11 @@ public class SolarCalculator {
         Log.d("Local Sidereal Time", "The Julian Date relevant to this calculation is: " + jd);
         double n = jd - 2451545.0;
         Log.d("Local Sidereal Time", "The days since epoch is jd - 2451545.0 = " + n);
+
         double GMST = (280.46061837 + 360.98564736629 * n) % 360;
-        Log.d("Local Sidereal Time", "Now we calculate the GMST, which is given as: " +
-                "(280.46061837 + 360.98564736629 * days-since-epoch) % 360 = " + GMST);
         if (GMST < 0) GMST += 360;
-        Log.d("Local Sidereal Time", "If GMST is negative, add 360!");
+        Log.d("Local Sidereal Time", "GMST (in degrees): " + GMST);
+
         double LMST = (GMST + longitude) % 360;
         Log.d("Local Sidereal Time", "LMST = (GMST + longitude) % 360, where longitude is " + longitude + " gives us: " + LMST);
         if (LMST < 0) LMST += 360;
@@ -243,43 +251,70 @@ public class SolarCalculator {
     private double[] calculateAltitudeAndAzimuth() {
 
         Log.d("Altitude and Azimuth", "==========CALCULATE ALTITUDE AND AZIMUTH==========");
-        double meanAnomaly = calculateMeanSolarAnomaly();
-        Log.d("Altitude and Azimuth", "Mean Anomaly is: " + meanAnomaly);
-        double equationOfCenter = calculateEquationOfCenter(meanAnomaly);
-        Log.d("Altitude and Azimuth", "Equation of Center is " + equationOfCenter);
-        double eclipticLongitude = calculateEclipticLongitude(meanAnomaly, equationOfCenter);
-        Log.d("Altitude and Azimuth", "Ecliptic Longitude is " + eclipticLongitude);
-        double declination = calculateSolarDeclination(eclipticLongitude);
-        Log.d("Altitude and Azimuth", "Declination is " + declination);
-        double rightAscension = calculateRightAscension(eclipticLongitude);
-        Log.d("Altitude and Azimuth", "Right ascension is " + rightAscension);
-        double hourAngle = calculateHourAngle(rightAscension);
-        Log.d("Altitude and Azimuth", "Hour angle is " + hourAngle);
+
+        double n = daysSinceJ2000();
+        double T = n / 36525.0; // Julian Centuries
+
+        // Mean Longitude (L)
+        double L = (280.46646 + 36000.76983 * T) % 360;
+        if (L < 0) L += 360;
+        Log.d("Altitude and Azimuth", "Mean Longitude (degrees): " + L);
+
+        // Mean Anomaly (M)
+        double M = (357.52911 + 35999.05029 * T) % 360;
+        if (M < 0) M += 360;
+        Log.d("Altitude and Azimuth", "Mean Anomaly (degrees): " + M);
+
+        // Equation of Center (C)
+        double C = calculateEquationOfCenter(M);
+        Log.d("Altitude and Azimuth", "Equation of Center is: " + C);
+
+        // True Longitude (lambda)
+        double lambda = L + C;
+        if (lambda > 360) lambda -= 360;
+        Log.d("Altitude and Azimuth", "Ecliptic Longitude is: " + lambda);
+
+        // Obliquity of the Ecliptic (epsilon)
+        double epsilon = 23.439291 - 0.0130042 * T;
+        Log.d("Altitude and Azimuth", "Obliquity of the Ecliptic (degrees): " + epsilon);
+
+        // Radian conversions
+        double lambda_rad = lambda * DEGREES_TO_RADIANS;
+        double epsilon_rad = epsilon * DEGREES_TO_RADIANS;
+
+        // Declination (delta)
+        double delta = Math.asin(Math.sin(epsilon_rad) * Math.sin(lambda_rad));
+        Log.d("Altitude and Azimuth", "Declination (radians): " + delta);
+        Log.d("Altitude and Azimuth", "Declination (degrees): " + delta * RADIANS_TO_DEGREES);
+
+        // Right Ascension (alpha)
+        double alpha = Math.atan2(Math.cos(epsilon_rad) * Math.sin(lambda_rad), Math.cos(lambda_rad));
+        if (alpha < 0) alpha += 2 * Math.PI;
+        double alpha_deg = alpha * RADIANS_TO_DEGREES;
+        Log.d("Altitude and Azimuth", "Right Ascension (degrees): " + alpha_deg);
+
+        // Local Sidereal Time (LMST)
+        double LST = calculateLocalSiderealTime();
+        Log.d("Altitude and Azimuth", "Local Sidereal Time (degrees): " + LST);
+
+        // Hour Angle (H)
+        double H = (LST - alpha_deg + 360) % 360;
+        if (H > 180) H -= 360;
+        Log.d("Altitude and Azimuth", "Hour Angle (degrees): " + H);
+        double H_rad = H * DEGREES_TO_RADIANS;
+
+        // Latitude in radians
         double latitude_rad = latitude * DEGREES_TO_RADIANS;
-        Log.d("Altitude and Azimuth", "Latitude in radians is: " + latitude_rad);
-        double declination_rad = declination * DEGREES_TO_RADIANS;
-        Log.d("Altitude and Azimuth", "Declination in radians is: " + declination_rad);
-        double hourAngle_rad = hourAngle * DEGREES_TO_RADIANS;
-        Log.d("Altitude and Azimuth", "Hour Angle in radians is: " + hourAngle_rad);
-        double term1 = Math.sin(latitude_rad) * Math.sin(declination_rad);
-        double term2 = Math.cos(latitude_rad) * Math.cos(declination_rad) * Math.cos(hourAngle_rad);
-        Log.d("Altitude and Azimuth", "Term 1 (sin(latitude-in-radians) * sin(declination-in-radians)): " + term1);
-        Log.d("Altitude and Azimuth", "Term 2 (cos(latitude-in-radians) * cos(declination-in-radians) * cos(hour-angle-in-radians)): " + term2);
-        double sinAltitude = term1 + term2;
-        Log.d("Altitude and Azimuth", "sinAltitude = term1 + term2 = " + sinAltitude);
-        double altitude_rad = Math.asin(sinAltitude);
-        Log.d("Altitude and Azimuth", "Altitude, in radians, is: " + altitude_rad);
+
+        // Altitude
+        double altitude_rad = Math.asin(Math.sin(latitude_rad) * Math.sin(delta) + Math.cos(latitude_rad) * Math.cos(delta) * Math.cos(H_rad));
         double altitude_deg = altitude_rad * RADIANS_TO_DEGREES;
-        Log.d("Altitude and Azimuth", "Altitude, in degrees, is: " + altitude_deg);
-        double cosAzimuth = (Math.sin(declination_rad) - Math.sin(altitude_rad) * Math.sin(latitude_rad))
-                / (Math.cos(altitude_rad) * Math.cos(latitude_rad));
-        Log.d("Altitude and Azimuth", "cosAzimuth = (sin(declination-in-radians) - sin(altitude-in-radians) * sin(latitude-in-radians)) / (cos(altitude-in-radians) * cos(latitude-in-radians)) = " + cosAzimuth);
-        double sinAzimuth = -Math.cos(declination_rad) * Math.sin(hourAngle_rad) / Math.cos(altitude_rad);
-        Log.d("Altitude and Azimuth", "sinAzimuth = -(cos(declination-in-radians)) * sin(hour-angle-in-radians) / cos(altitude-in-radians) = " + sinAzimuth);
-        double azimuth_rad = Math.atan2(sinAzimuth, cosAzimuth);
-        Log.d("Altitude and Azimuth", "Azimuth-in-radians = atan2(sinAzimuth, cosAzimuth) = " + azimuth_rad);
+        Log.d("Altitude and Azimuth", "Altitude (degrees): " + altitude_deg);
+
+        // Azimuth
+        double azimuth_rad = Math.atan2(-Math.sin(H_rad), Math.cos(latitude_rad) * Math.tan(delta) - Math.sin(latitude_rad) * Math.cos(H_rad));
         double azimuth_deg = (azimuth_rad * RADIANS_TO_DEGREES + 360) % 360;
-        Log.d("Altitude and Azimuth", "Azimuth-in-degrees = " + azimuth_deg);
+        Log.d("Altitude and Azimuth", "Azimuth (degrees): " + azimuth_deg);
         Log.d("Altitude and Azimuth", "Hence the altitude and azimuth are: {" + altitude_deg + ", " + azimuth_deg + "}");
         Log.d("Altitude and Azimuth", "                                                 ");
         return new double[]{altitude_deg, azimuth_deg};
