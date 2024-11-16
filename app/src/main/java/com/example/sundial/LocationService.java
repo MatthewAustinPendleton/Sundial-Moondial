@@ -9,6 +9,8 @@ import android.Manifest; // Access to permission constants like ACCESS_FINE_LOCA
 import android.app.Activity; // Allows use of Android's Activity class, for apps
 import android.content.pm.PackageManager; // For checking status of app permissions
 import android.location.Location; // Latitude and longitude!
+import android.util.Log;
+
 import androidx.annotation.NonNull; // Explicitly annotate when something shouldn't be null
 import androidx.core.app.ActivityCompat; // Compatibility with older android versions
 import androidx.core.content.ContextCompat; // Compatibility with older android versions
@@ -49,9 +51,17 @@ public class LocationService {
     }
 
     public void getLocationUpdates(OnSuccessListener<Location> listener) {
-
+        Log.d("LocationService", "Checking location permissions.");
         if (checkLocationPermission()) {
-
+            Log.d("LocationService", "Permission granted. Requesting location updates.");
+            fusedLocationProviderClient.getLastLocation()
+                    .addOnSuccessListener(location -> {
+                        if (location != null) {
+                            Log.d("LocationService", "One-time location: " + location);
+                        } else {
+                            Log.d("LocationService", "One-time location: Location data is null");
+                        }
+                    });
             LocationRequest locationRequest = new LocationRequest.Builder(
                     Priority.PRIORITY_HIGH_ACCURACY, 10000
             ).build();
@@ -62,15 +72,19 @@ public class LocationService {
                         public void onLocationResult(@NonNull LocationResult locationResult) {
                             Location location = locationResult.getLastLocation();
                             if (location != null) {
+                                Log.d("LocationService", "Location received: " + location);
                                 listener.onSuccess(location);
+                            } else {
+                                Log.d("LocationService", "Location is null.");
                             }
                         }
                     },
                     null
             );
-
+        } else {
+            Log.d("LocationService", "Location permission not granted.");
         }
-
     }
+
 
 }

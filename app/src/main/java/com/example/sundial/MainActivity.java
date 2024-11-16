@@ -19,12 +19,15 @@ public class MainActivity extends AppCompatActivity {
     private LocationService locationService;
     private double latitude;
     private double longitude;
+    private OrientationManager orientationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         locationService = new LocationService(this);
+        orientationManager = new OrientationManager(this);
+        orientationManager.startListening();
         if (locationService.checkLocationPermission()) {
             requestUserLocation();
         } // If you have permission, request location
@@ -36,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private void requestUserLocation() {
 
         locationService.getLocationUpdates(new OnSuccessListener<Location>() {
+
             @Override
             public void onSuccess(Location location) {
                 if (location != null) {
@@ -85,6 +89,13 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d("SunPosition", "Latitude: " + latitude + ", Longitude: " + longitude);
         Log.d("SunPosition", "Altitude: " + altitude + ", Azimuth: " + azimuth);
+
+    }
+
+    protected void onDestroy() {
+
+        super.onDestroy();
+        orientationManager.stopListening();
 
     }
 
