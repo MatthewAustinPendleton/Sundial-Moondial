@@ -34,53 +34,61 @@ public class SundialView extends View {
         super.onDraw(canvas);
         int width = getWidth();
         int height = getHeight();
-        int radius = Math.min(width, height) / 2 - 20;
+        int radius = Math.min(width, height) / 2 - 90;
+        int centerX = width/2;
+        int centerY = height/2;
 
-        // Draw the circle
+        // Outer Circle
         paint.setColor(Color.DKGRAY);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(8);
-        canvas.drawCircle((float) width / 2, (float) height / 2, radius, paint);
+        canvas.drawCircle(centerX, centerY, radius, paint);
+
+        // Concentric Circles
+        paint.setStrokeWidth(4);
+        canvas.drawCircle(centerX, centerY, radius - 20, paint);
+        canvas.drawCircle(centerX, centerY, radius - 40, paint);
 
         // Draw hour and compass markings
-        drawMarkings(canvas, width / 2, height / 2, radius);
+        drawMarkings(canvas, centerX, centerY, radius);
 
     }
 
     private void drawMarkings(Canvas canvas, int centerX, int centerY, int radius) {
 
-        paint.setColor(Color.DKGRAY);
         paint.setStyle(Paint.Style.FILL);
-        paint.setTextSize(36);
+        paint.setColor(Color.DKGRAY);
 
-        for (int i = 0; i < 24; i++) {
+        // Roman numeral hour labels
+        String[] romanNumerals = {"VI", "VII", "VIII", "IX", "X", "XI", "XII", "I", "II", "III", "IV", "V"};
 
-            double angle = Math.toRadians((i * 15) - 90); // 15 degrees per hour
-            int markRadius = radius - 30;
-            int endRadius = (i % 6 == 0) ? radius - 10 : radius - 20;
+        for (int i = 0; i < 12; i++) {
 
-            // Calculate line start and end positions for markings
-            int startX = (int) (centerX + markRadius * Math.cos(angle));
-            int startY = (int) (centerY + markRadius * Math.sin(angle));
+            double angle = Math.toRadians((i * 15) - 170);
+
+            int startRadius = radius - 20;
+            int endRadius = radius - 10;
+
+            int startX = (int) (centerX + startRadius * Math.cos(angle));
+            int startY = (int) (centerY + startRadius * Math.sin(angle));
             int endX = (int) (centerX + endRadius * Math.cos(angle));
             int endY = (int) (centerY + endRadius * Math.sin(angle));
+            paint.setStrokeWidth(3);
             canvas.drawLine(startX, startY, endX, endY, paint);
 
-            // Add hour numbers
-            if (i % 2 == 0) {
-                int textX = (int) (centerX + (markRadius - 40) * Math.cos(angle));
-                int textY = (int) (centerY + (markRadius - 40) * Math.sin(angle) + 12);
-                canvas.drawText(String.valueOf((i == 0 ? 12 : i / 2)), textX, textY, paint);
-            }
+            int textX = (int) (centerX + (startRadius - 40) * Math.cos(angle));
+            int textY = (int) (centerY + (startRadius - 40) * Math.sin(angle) + 12);
+            paint.setTextSize(36);
+            canvas.drawText(romanNumerals[i], textX, textY, paint);
 
         }
 
-        // Draw compass directions
+        paint.setColor(Color.BLACK);
         paint.setTextSize(48);
-        canvas.drawText("N", centerX, centerY - radius + 80, paint);
-        canvas.drawText("E", centerX + radius - 50, centerY + 20, paint);
-        canvas.drawText("S", centerX, centerY + radius - 30, paint);
-        canvas.drawText("W", centerX - radius + 50, centerY + 20, paint);
+        canvas.drawText("N", centerX, centerY - radius - 10, paint);
+        canvas.drawText("E", centerX + radius + 20, centerY + 20, paint);
+        canvas.drawText("S", centerX, centerY + radius + 50, paint);
+        canvas.drawText("W", centerX - radius - 30, centerY + 20, paint);
 
     }
 
