@@ -36,7 +36,8 @@ public class SundialView extends View {
         int height = getHeight();
         int outermostRadius = Math.min(width, height) / 2 - 60; // Increase for padding
         int middleRadius = outermostRadius - 75;
-        int innermostRadius = middleRadius - 40;
+        int middleRadius2 = middleRadius - 40;
+        int innermostRadius = middleRadius2 - 40;
         int centerX = width / 2;
         int centerY = height / 2;
 
@@ -50,15 +51,20 @@ public class SundialView extends View {
         paint.setStrokeWidth(4);
         canvas.drawCircle(centerX, centerY, middleRadius, paint);
 
+        // Second Middle Circle
+        canvas.drawCircle(centerX, centerY, middleRadius2, paint);
+
         // Inner circle
         canvas.drawCircle(centerX, centerY, innermostRadius, paint);
 
         // Draw hour and compass markings
-        drawMarkings(canvas, centerX, centerY, outermostRadius, middleRadius, innermostRadius);
+        drawMarkings(canvas, centerX, centerY, outermostRadius, middleRadius, middleRadius2, innermostRadius);
+
+        drawCenterCircle(canvas, centerX, centerY);
 
     }
 
-    private void drawMarkings(Canvas canvas, int centerX, int centerY, int outermostRadius, int middleRadius, int innermostRadius) {
+    private void drawMarkings(Canvas canvas, int centerX, int centerY, int outermostRadius, int middleRadius, int middleRadius2, int innermostRadius) {
 
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.DKGRAY);
@@ -84,6 +90,22 @@ public class SundialView extends View {
             paint.setStrokeWidth(3);
             canvas.drawLine(startX, startY, endX, endY, paint);
 
+            // Extend the hour line to the center
+            paint.setStrokeWidth(3.0f);
+            canvas.drawLine(endX, endY, centerX, centerY, paint);
+
+        }
+
+        for (int i = 0; i < 48; i++) {
+            if (i % 4 == 0) continue;
+            double angle = Math.toRadians((i * 7.5) - 172);
+            int startX = (int) (centerX + (middleRadius2 - 10) * Math.cos(angle));
+            int startY = (int) (centerY + (middleRadius2 - 10) * Math.sin(angle));
+            int endX = (int) (centerX + innermostRadius * Math.cos(angle));
+            int endY = (int) (centerY + innermostRadius * Math.sin(angle));
+
+            paint.setStrokeWidth(2);
+            canvas.drawLine(startX, startY, endX, endY, paint);
         }
 
         // compass directions
@@ -94,6 +116,13 @@ public class SundialView extends View {
         canvas.drawText("S", centerX, centerY + outermostRadius + 50, paint);
         canvas.drawText("W", centerX - outermostRadius - 30, centerY + 20, paint);
 
+    }
+
+    private void drawCenterCircle(Canvas canvas, int centerX, int centerY) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.DKGRAY);
+        int filledCircleRadius = 10;
+        canvas.drawCircle(centerX, centerY, filledCircleRadius, paint);
     }
 
 }

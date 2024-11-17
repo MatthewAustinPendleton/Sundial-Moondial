@@ -28,6 +28,8 @@ public class LocationService {
     private final FusedLocationProviderClient fusedLocationProviderClient; // for accessing location data
     protected static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
+    private LocationCallback locationCallback;
+
     public LocationService(Activity activity) {
 
         this.activity = activity;
@@ -51,38 +53,35 @@ public class LocationService {
     }
 
     public void getLocationUpdates(OnSuccessListener<Location> listener) {
-        Log.d("LocationService", "Checking location permissions.");
         if (checkLocationPermission()) {
-            Log.d("LocationService", "Permission granted. Requesting location updates.");
-            fusedLocationProviderClient.getLastLocation()
-                    .addOnSuccessListener(location -> {
-                        if (location != null) {
-                            Log.d("LocationService", "One-time location: " + location);
-                        } else {
-                            Log.d("LocationService", "One-time location: Location data is null");
-                        }
-                    });
+            locationCallback = new LocationCallback() {
+                @Override
+                public void onLocationResult(@NonNull LocationResult locationResult) {
+                    Location location = locationResult.getLastLocation();
+                    if (location != null) {
+                        listener.onSuccess(location);
+                    } else {
+                        Log.d("LocationService", "Location is null.");
+                    }
+                }
+            };
+
             LocationRequest locationRequest = new LocationRequest.Builder(
                     Priority.PRIORITY_HIGH_ACCURACY, 10000
             ).build();
 
             fusedLocationProviderClient.requestLocationUpdates(
-                    locationRequest, new LocationCallback() {
-                        @Override
-                        public void onLocationResult(@NonNull LocationResult locationResult) {
-                            Location location = locationResult.getLastLocation();
-                            if (location != null) {
-                                Log.d("LocationService", "Location received: " + location);
-                                listener.onSuccess(location);
-                            } else {
-                                Log.d("LocationService", "Location is null.");
-                            }
-                        }
-                    },
-                    null
+                    locationRequest, locationCallback, null
             );
         } else {
             Log.d("LocationService", "Location permission not granted.");
+        }
+    }
+
+    public void stopUpdates() {
+        if (locationCallback != null) {
+            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+            Log.d("LocationService", "Location updates stopped.");
         }
     }
 

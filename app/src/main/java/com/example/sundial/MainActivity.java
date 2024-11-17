@@ -9,25 +9,30 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.util.Log;
-import android.widget.Toast; // Displaying messages to user
 import com.google.android.gms.tasks.OnSuccessListener;
-import java.util.Calendar;
-import java.util.TimeZone;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SolarCalculator.SolarCalculatorCallback {
 
     private LocationService locationService;
     private double latitude;
     private double longitude;
     private OrientationManager orientationManager;
+    private ShadowManager shadowManager;
+    private double solarAzimuth = 0.0;
+    private double solarAltitude = 0.0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Initialize services:
         locationService = new LocationService(this);
         orientationManager = new OrientationManager(this);
         orientationManager.startListening();
+
+        shadowManager = new ShadowManager(200, 40, 10);
+
         if (locationService.checkLocationPermission()) {
             requestUserLocation();
         } // If you have permission, request location
@@ -46,8 +51,6 @@ public class MainActivity extends AppCompatActivity {
                     latitude = location.getLatitude();
                     longitude = location.getLongitude();
 
-                    // Show first toast with a shorter duration
-                    //Toast.makeText(MainActivity.this, "Latitude: " + latitude + ", Longitude: " + longitude, Toast.LENGTH_SHORT).show();
                     Log.d("Lat/Long", "Latitude/Longitude = (" + latitude + ", " + longitude +
                             ")");
 
@@ -56,7 +59,6 @@ public class MainActivity extends AppCompatActivity {
                     displaySunPosition();
 
                 } else {
-                    //Toast.makeText(MainActivity.this, "Location not available", Toast.LENGTH_SHORT).show();
                     Log.d("Location unavailable", "Location unavailable!");
                 }
             }
@@ -82,13 +84,9 @@ public class MainActivity extends AppCompatActivity {
         // Get the current time in milliseconds
         long nowMillis = System.currentTimeMillis();
 
+        // Create a SolarCalculator instance and start calculation in the background
         SolarCalculator solarCalculator = new SolarCalculator(latitude, longitude, nowMillis);
-
-        double altitude = solarCalculator.getAltitude();
-        double azimuth = solarCalculator.getAzimuth();
-
-        Log.d("SunPosition", "Latitude: " + latitude + ", Longitude: " + longitude);
-        Log.d("SunPosition", "Altitude: " + altitude + ", Azimuth: " + azimuth);
+        solarCalculator.calculateInBackground(this);
 
     }
 
@@ -99,4 +97,53 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onPause() {
+
+        super.onPause();
+        locationService.stopUpdates();
+        orientationManager.stopListening();
+
+    }
+
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+
+        orientationManager.startListening();
+
+        if (locationService.checkLocationPermission()) {
+            requestUserLocation();
+        }
+        else {
+            locationService.requestLocationPermission();
+        }
+
+    }
+
+    @Override
+    public void onCalculationComplete(double altitude, double azimuth) {
+
+        solarAltitude = altitude;
+        solarAzimuth = azimuth;
+
+        Log.d("SolarCalculator", "Altitude: " + altitude + ", " + "Azimuth: " + azimuth);
+
+        new Handler(Looper.getMainLooper()).post(() -> {
+
+            double phonePitch = orientationManager.getPitch();
+            double phoneRoll = orientationManager.getRoll();
+
+            double shadowLength = shadowManager.calculateShadowLength(solarAltitude, phonePitch);
+            double shadowWidth = shadowManager.calculateShadowWidth(solarAltitude);
+            double shadowDirection = shadowManager.calculateShadowDirection(solarAzimuth, phoneRoll);
+
+            Log.d("ShadowTest", "Shadow Length: " + shadowLength);
+            Log.d("ShadowTest", "Shadow Width: " + shadowWidth);
+            Log.d("ShadowTest", "Shadow Direction: " + shadowDirection);
+
+        });
+
+    }
 }

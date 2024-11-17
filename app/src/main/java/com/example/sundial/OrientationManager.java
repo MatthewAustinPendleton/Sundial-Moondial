@@ -16,98 +16,58 @@ public class OrientationManager implements SensorEventListener {
 
     private float[] lastAccelerometerValues;
     private float[] lastMagnetometerValues;
-    private long lastAccelerometerUpdateTime;
-    private long lastMagnetometerUpdateTime;
-    private static final long UPDATE_THRESHOLD_IN_MILLISECONDS = 500;
-    private static final float SIGNIFICANT_CHANGE_THRESHOLD = 0.5f;
+    private float[] rotationMatrix = new float[9];
+    private float[] orientationAngles = new float[3];
+
+    private double pitch = 0.0;
+    private double roll = 0.0;
 
     public OrientationManager(Context context) {
-
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-
     }
 
     public void startListening() {
-
         if (accelerometer != null) sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
         if (magnetometer != null) sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
-
     }
 
     public void stopListening() {
-
         sensorManager.unregisterListener(this);
-
     }
 
     @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
-        if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            handleAccelerometerData(sensorEvent);
-        }
-        else if (sensorEvent.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            handleMagnetometerData(sensorEvent);
-        }
-    }
-
-    private void handleAccelerometerData(SensorEvent sensorEvent) {
-
-        long currentTime = System.currentTimeMillis();
-
-        if (lastAccelerometerValues == null ||
-                (currentTime - lastAccelerometerUpdateTime > UPDATE_THRESHOLD_IN_MILLISECONDS &&
-                        hasSignificantChange(sensorEvent.values, lastAccelerometerValues))) {
-
-            lastAccelerometerUpdateTime = currentTime;
-            lastAccelerometerValues = sensorEvent.values.clone();
-
-            double x = sensorEvent.values[0];
-            double y = sensorEvent.values[1];
-            double z = sensorEvent.values[2];
-
-            Log.d(TAG, "Accelerometer data: (" + x + ", " + y + ", " + z + ")");
-
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            lastAccelerometerValues = event.values.clone();
+        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            lastMagnetometerValues = event.values.clone();
         }
 
-    }
+        if (lastAccelerometerValues != null && lastMagnetometerValues != null) {
+            if (SensorManager.getRotationMatrix(rotationMatrix, null, lastAccelerometerValues, lastMagnetometerValues)) {
+                SensorManager.getOrientation(rotationMatrix, orientationAngles);
 
-    private void handleMagnetometerData(SensorEvent sensorEvent) {
+                // Convert from radians to degrees
+                pitch = Math.toDegrees(orientationAngles[1]); // Pitch is the second angle
+                roll = Math.toDegrees(orientationAngles[2]);  // Roll is the third angle
 
-        long currentTime = System.currentTimeMillis();
-
-        if (lastMagnetometerValues == null || (currentTime - lastAccelerometerUpdateTime > UPDATE_THRESHOLD_IN_MILLISECONDS &&
-                hasSignificantChange(sensorEvent.values, lastMagnetometerValues))) {
-
-            lastMagnetometerUpdateTime = currentTime;
-            lastMagnetometerValues = sensorEvent.values.clone();
-
-            double x = sensorEvent.values[0];
-            double y = sensorEvent.values[1];
-            double z = sensorEvent.values[2];
-
-            Log.d(TAG, "Magnetometer data: (" + x + ", " + y + ", " + z + ")");
-
+                //Log.d(TAG, "Pitch: " + pitch + ", Roll: " + roll);
+            }
         }
-
     }
 
     @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-        // Stubbed, don't actually need this method
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // I don't need this
     }
 
-    private boolean hasSignificantChange(float[] newValues, float[] oldValues) {
-        if (oldValues == null) {
-            return true;
-        }
-
-        float dx = Math.abs(newValues[0] - oldValues[0]);
-        float dy = Math.abs(newValues[1] - oldValues[1]);
-        float dz = Math.abs(newValues[2] - oldValues[2]);
-
-        return (dx > SIGNIFICANT_CHANGE_THRESHOLD || dy > SIGNIFICANT_CHANGE_THRESHOLD || dz > SIGNIFICANT_CHANGE_THRESHOLD);
+    public double getPitch() {
+        return pitch;
     }
 
+    public double getRoll() {
+        return roll;
+    }
 }

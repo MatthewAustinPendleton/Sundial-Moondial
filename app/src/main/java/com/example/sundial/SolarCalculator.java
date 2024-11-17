@@ -156,6 +156,17 @@ public class SolarCalculator {
     }
 
 
+    public interface SolarCalculatorCallback {
+        void onCalculationComplete(double altitude, double azimuth);
+    }
+
+    public void calculateInBackground(SolarCalculatorCallback callback) {
+        new Thread(() -> {
+           double[] results = calculateAltitudeAndAzimuth();
+           callback.onCalculationComplete(results[0], results[1]);
+        }).start();
+    }
+
     // The two coordinates (altitude, azimuth) that determines the sun's position overhead in the sky, crucial for sundial functionality
     private double[] calculateAltitudeAndAzimuth() {
 
