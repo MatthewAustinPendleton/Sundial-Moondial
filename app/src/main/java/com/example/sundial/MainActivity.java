@@ -16,8 +16,12 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
     private LocationService locationService;
     private double latitude;
     private double longitude;
+
     private OrientationManager orientationManager;
     private ShadowManager shadowManager;
+    private SundialView sundialView;
+    private ShadowAnimationManager shadowAnimationManager;
+
     private double solarAzimuth = 0.0;
     private double solarAltitude = 0.0;
 
@@ -31,7 +35,27 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
         orientationManager = new OrientationManager(this);
         orientationManager.startListening();
 
-        shadowManager = new ShadowManager(200, 40, 10);
+        // Get the SundialView instance
+        SundialView sundialView = findViewById(R.id.sundial_view);
+
+        // Trigger onDraw to initialize variables in SundialView
+        sundialView.post(() -> {
+            // Force a redraw to ensure onDraw is called
+            sundialView.invalidate();
+
+            // Initialize ShadowManager after onDraw has been called
+            shadowManager = new ShadowManager(
+                    sundialView.getOutermostRadius(),
+                    sundialView.getMiddleRadius2(),
+                    40,  // Max width
+                    10   // Min width
+            );
+
+            Log.d("MainActivity", "ShadowManager initialized with radii: outermostRadius=" +
+                    sundialView.getOutermostRadius() + ", middleRadius2=" + sundialView.getMiddleRadius2());
+            shadowAnimationManager = new ShadowAnimationManager(sundialView, shadowManager);
+        });
+
 
         if (locationService.checkLocationPermission()) {
             requestUserLocation();
@@ -142,6 +166,8 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
             Log.d("ShadowTest", "Shadow Length: " + shadowLength);
             Log.d("ShadowTest", "Shadow Width: " + shadowWidth);
             Log.d("ShadowTest", "Shadow Direction: " + shadowDirection);
+
+            shadowAnimationManager.startAnimation(solarAltitude, solarAzimuth, phonePitch, phoneRoll);
 
         });
 
