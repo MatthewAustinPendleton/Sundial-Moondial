@@ -141,6 +141,7 @@ public class SundialView extends View {
         canvas.drawText("N", centerX, centerY - outermostRadius - 20, paint);
         canvas.drawText("E", centerX + outermostRadius + 20, centerY + 20, paint);
         canvas.drawText("W", centerX - outermostRadius - 50, centerY + 20, paint);
+        canvas.drawText("S", centerX, centerY + outermostRadius + 50, paint);
     }
 
 
@@ -154,25 +155,29 @@ public class SundialView extends View {
     }
 
     private void drawShadow(Canvas canvas, int centerX, int centerY) {
-
         if (shadowLength > 0) {
-
-            // Clamp shadowLength to fit within the sundial
-            int maxShadowLength = Math.min(centerX, centerY); // Stay within the view bounds
+            // Clamp shadow length to the second inner circle
+            float maxShadowLength = middleRadius2;
             float scaledShadowLength = Math.min(shadowLength, maxShadowLength);
 
-            // Calculate the shadow's end point based on its direction
-            float endX = (float) (centerX + scaledShadowLength * Math.cos(Math.toRadians(shadowDirection)));
-            float endY = (float) (centerY + scaledShadowLength * Math.sin(Math.toRadians(shadowDirection)));
+            // Adjust azimuth for shadow direction and map to canvas coordinates
+            float adjustedDirection = 360 - shadowDirection + 90; // Correct for coordinate system
 
-            // Log the calculated end point for debugging
-            Log.d("ShadowDraw", "Start: (" + centerX + ", " + centerY + "), End: (" + endX + ", " + endY + ")");
+            // Normalize to [0°, 360°] only once
+            adjustedDirection = (adjustedDirection + 360) % 360;
 
-            // Clamp shadow width for visibility
-            float scaledShadowWidth = Math.min(shadowWidth, 10);
-            paint.setStrokeWidth(scaledShadowWidth);
+            // Calculate the end point of the shadow
+            float endX = (float) (centerX + scaledShadowLength * Math.cos(Math.toRadians(adjustedDirection)));
+            float endY = (float) (centerY - scaledShadowLength * Math.sin(Math.toRadians(adjustedDirection)));
 
-            // Draw the shadow line
+            // Log for debugging
+            Log.d("ShadowDraw", String.format(
+                    "Shadow Draw - Start: (%d, %d), End: (%.2f, %.2f), Length: %.2f, Azimuth: %.2f, Adjusted: %.2f",
+                    centerX, centerY, endX, endY, scaledShadowLength, shadowDirection, adjustedDirection
+            ));
+
+            // Draw the shadow
+            paint.setStrokeWidth(Math.min(shadowWidth, 10)); // Clamp shadow width for visibility
             paint.setColor(Color.DKGRAY);
             canvas.drawLine(centerX, centerY, endX, endY, paint);
         }
@@ -189,6 +194,5 @@ public class SundialView extends View {
         return middleRadius2;
 
     }
-
 
 }

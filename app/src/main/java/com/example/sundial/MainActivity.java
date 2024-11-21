@@ -158,18 +158,12 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
 
             double phonePitch = orientationManager.getPitch();
             double phoneRoll = orientationManager.getRoll();
-
-            double shadowLength = shadowManager.calculateShadowLength(solarAltitude, phonePitch);
-            double shadowWidth = shadowManager.calculateShadowWidth(solarAltitude);
             double shadowDirection = shadowManager.calculateShadowDirection(solarAzimuth, phoneRoll);
 
-            Log.d("ShadowTest", "Shadow Length: " + shadowLength);
-            Log.d("ShadowTest", "Shadow Width: " + shadowWidth);
-            Log.d("ShadowTest", "Shadow Direction: " + shadowDirection);
-
-            shadowAnimationManager.startAnimation(solarAltitude, solarAzimuth, phonePitch, phoneRoll);
+            shadowAnimationManager.startAnimation(solarAltitude, shadowDirection, phonePitch, phoneRoll);
 
         });
 
     }
+
 }

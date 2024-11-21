@@ -53,27 +53,26 @@ public class ShadowAnimationManager {
 
     }
 
-    public void animateShadowDirection(double solarAzimuth, double phoneRoll) {
-
-        float start = (float) shadowDirection;
-        float end = (float) shadowManager.calculateShadowDirection(solarAzimuth, phoneRoll);
+    public void animateShadowDirection(double shadowDirection) {
+        float start = (float) this.shadowDirection;
+        float end = (float) shadowDirection; // Use the already-calculated shadowDirection
 
         ValueAnimator directionAnimator = ValueAnimator.ofFloat(start, end);
         directionAnimator.setDuration(animationDuration);
         directionAnimator.setInterpolator(new LinearInterpolator());
         directionAnimator.addUpdateListener(animation -> {
-            shadowDirection = (float) animation.getAnimatedValue();
+            this.shadowDirection = (float) animation.getAnimatedValue();
             updateSundialView();
         });
         directionAnimator.start();
-
     }
+
 
     public void startAnimation(double solarAltitude, double solarAzimuth, double phonePitch, double phoneRoll) {
 
         animateShadowLength(solarAltitude, phonePitch);
         animateShadowWidth(solarAltitude);
-        animateShadowDirection(solarAzimuth, phoneRoll);
+        animateShadowDirection(solarAzimuth);
 
     }
 

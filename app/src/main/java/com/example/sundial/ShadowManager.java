@@ -1,5 +1,7 @@
 package com.example.sundial;
 
+import android.util.Log;
+
 public class ShadowManager {
 
     private final double maxLength;
@@ -43,9 +45,11 @@ public class ShadowManager {
     }
 
     public double calculateShadowDirection(double solarAzimuth, double phoneRoll) {
+        // Map the azimuth to the sundial's coordinate system
+        // For a horizontal sundial, the shadow points opposite to the sun
+        double shadowAzimuth = (solarAzimuth + 180) % 360;
 
-        return (solarAzimuth - phoneRoll + 360) % 360;
-
+        return (shadowAzimuth - phoneRoll + 360) % 360;
     }
 
 }
