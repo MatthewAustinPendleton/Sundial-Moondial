@@ -19,6 +19,8 @@ public class SundialView extends View {
     private int outermostRadius;
     private int middleRadius2;
 
+    private static float SHADOW_ANGLE_OFFSET = 5.0f;
+
     public SundialView(Context context, AttributeSet attributeSet) {
 
         super(context, attributeSet);
@@ -158,10 +160,10 @@ public class SundialView extends View {
         if (shadowLength > 0) {
             // Clamp shadow length to the second inner circle
             float maxShadowLength = middleRadius2;
-            float scaledShadowLength = Math.min(shadowLength, maxShadowLength);
+            float scaledShadowLength = Math.max(shadowLength, maxShadowLength);
 
             // Adjust azimuth for shadow direction and map to canvas coordinates
-            float adjustedDirection = 360 - shadowDirection + 90; // Correct for coordinate system
+            float adjustedDirection = 360 - shadowDirection + 90 - SHADOW_ANGLE_OFFSET; // Correct for coordinate system
 
             // Normalize to [0°, 360°] only once
             adjustedDirection = (adjustedDirection + 360) % 360;
