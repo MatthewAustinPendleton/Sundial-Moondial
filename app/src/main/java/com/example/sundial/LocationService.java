@@ -9,7 +9,7 @@ import android.Manifest; // Access to permission constants like ACCESS_FINE_LOCA
 import android.app.Activity; // Allows use of Android's Activity class, for apps
 import android.content.pm.PackageManager; // For checking status of app permissions
 import android.location.Location; // Latitude and longitude!
-import android.util.Log;
+import android.util.Log; // LogCat!
 
 import androidx.annotation.NonNull; // Explicitly annotate when something shouldn't be null
 import androidx.core.app.ActivityCompat; // Compatibility with older android versions

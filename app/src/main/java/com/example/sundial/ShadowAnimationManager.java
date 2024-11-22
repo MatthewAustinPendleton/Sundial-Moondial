@@ -1,7 +1,7 @@
 package com.example.sundial;
 
 import android.animation.ValueAnimator;
-import android.renderscript.Sampler;
+import android.util.Log;
 import android.view.animation.LinearInterpolator;
 
 public class ShadowAnimationManager {
@@ -37,10 +37,10 @@ public class ShadowAnimationManager {
 
     }
 
-    public void animateShadowWidth(double solarAltitude) {
+    public void animateShadowWidth(float width) {
 
-        float start = (float) shadowWidth;
-        float end = (float) shadowManager.calculateShadowWidth(solarAltitude);
+        float start = shadowWidth;
+        float end = width;
 
         ValueAnimator widthAnimator = ValueAnimator.ofFloat(start, end);
         widthAnimator.setDuration(animationDuration);
@@ -54,25 +54,36 @@ public class ShadowAnimationManager {
     }
 
     public void animateShadowDirection(double shadowDirection) {
-        float start = (float) this.shadowDirection;
-        float end = (float) shadowDirection; // Use the already-calculated shadowDirection
+        // Get the current direction
+        float start = this.shadowDirection;
+        float end = (float) shadowDirection;
+
+        // Calculate the shortest path between angles
+        float diff = ((end - start + 180 + 360) % 360) - 180;
+        end = start + diff;
+
+        Log.d("ShadowDebug", String.format(
+                "Animating direction: start=%.2f, target=%.2f, diff=%.2f",
+                start, shadowDirection, diff));
 
         ValueAnimator directionAnimator = ValueAnimator.ofFloat(start, end);
         directionAnimator.setDuration(animationDuration);
         directionAnimator.setInterpolator(new LinearInterpolator());
         directionAnimator.addUpdateListener(animation -> {
-            this.shadowDirection = (float) animation.getAnimatedValue();
+            float value = (float) animation.getAnimatedValue();
+            this.shadowDirection = (value + 360) % 360; // Normalize to 0-360
             updateSundialView();
         });
         directionAnimator.start();
     }
 
 
-    public void startAnimation(double solarAltitude, double solarAzimuth, double phonePitch, double phoneRoll) {
+    public void startAnimation(double solarAltitude, double shadowDirection, double phonePitch) {
 
         animateShadowLength(solarAltitude, phonePitch);
-        animateShadowWidth(solarAltitude);
-        animateShadowDirection(solarAzimuth);
+        float angularWidth = (float) shadowManager.calculateAngularWidth(shadowDirection);
+        animateShadowWidth(angularWidth);
+        animateShadowDirection(shadowDirection);
 
     }
 

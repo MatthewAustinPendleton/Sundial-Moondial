@@ -22,7 +22,6 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
     private SundialView sundialView;
     private ShadowAnimationManager shadowAnimationManager;
 
-    private double solarAzimuth = 0.0;
     private double solarAltitude = 0.0;
 
     @Override
@@ -36,7 +35,7 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
         orientationManager.startListening();
 
         // Get the SundialView instance
-        SundialView sundialView = findViewById(R.id.sundial_view);
+        sundialView = findViewById(R.id.sundial_view);
 
         // Trigger onDraw to initialize variables in SundialView
         sundialView.post(() -> {
@@ -45,17 +44,17 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
 
             // Initialize ShadowManager after onDraw has been called
             shadowManager = new ShadowManager(
-                    sundialView.getOutermostRadius(),
-                    sundialView.getMiddleRadius2(),
-                    40,  // Max width
-                    10   // Min width
+                    sundialView.getOutermostRadius() - 20,  // maxLength - shadow should reach the middle radius
+                    sundialView.getOutermostRadius() - 100, // minLength - shadow's minimum length
+                    40,  // maxWidth
+                    10   // minWidth
             );
 
-            Log.d("MainActivity", "ShadowManager initialized with radii: outermostRadius=" +
-                    sundialView.getOutermostRadius() + ", middleRadius2=" + sundialView.getMiddleRadius2());
+            Log.d("ShadowDebug", "Initializing ShadowManager with maxLength=" +
+                    sundialView.getMiddleRadius() + ", minLength=" + (sundialView.getMiddleRadius() - 40));
+
             shadowAnimationManager = new ShadowAnimationManager(sundialView, shadowManager);
         });
-
 
         if (locationService.checkLocationPermission()) {
             requestUserLocation();
@@ -66,9 +65,7 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
     }
 
     private void requestUserLocation() {
-
         locationService.getLocationUpdates(new OnSuccessListener<Location>() {
-
             @Override
             public void onSuccess(Location location) {
                 if (location != null) {
@@ -89,10 +86,8 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
         });
     }
 
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LocationService.LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -103,36 +98,30 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
         }
     }
 
+    // Original method now calls the new version
     private void displaySunPosition() {
 
-        // Get the current time in milliseconds
         long nowMillis = System.currentTimeMillis();
 
-        // Create a SolarCalculator instance and start calculation in the background
         SolarCalculator solarCalculator = new SolarCalculator(latitude, longitude, nowMillis);
         solarCalculator.calculateInBackground(this);
 
     }
 
     protected void onDestroy() {
-
         super.onDestroy();
         orientationManager.stopListening();
-
     }
 
     @Override
     protected void onPause() {
-
         super.onPause();
         locationService.stopUpdates();
         orientationManager.stopListening();
-
     }
 
     @Override
     protected void onResume() {
-
         super.onResume();
 
         orientationManager.startListening();
@@ -143,27 +132,19 @@ public class MainActivity extends AppCompatActivity implements SolarCalculator.S
         else {
             locationService.requestLocationPermission();
         }
-
     }
 
     @Override
     public void onCalculationComplete(double altitude, double azimuth) {
-
         solarAltitude = altitude;
-        solarAzimuth = azimuth;
 
         Log.d("SolarCalculator", "Altitude: " + altitude + ", " + "Azimuth: " + azimuth);
 
         new Handler(Looper.getMainLooper()).post(() -> {
-
             double phonePitch = orientationManager.getPitch();
             double phoneRoll = orientationManager.getRoll();
-            double shadowDirection = shadowManager.calculateShadowDirection(solarAzimuth, phoneRoll);
-
-            shadowAnimationManager.startAnimation(solarAltitude, shadowDirection, phonePitch, phoneRoll);
-
+            double shadowDirection = shadowManager.calculateShadowDirection(azimuth, phoneRoll);
+            shadowAnimationManager.startAnimation(solarAltitude, shadowDirection, phonePitch);
         });
-
     }
-
 }

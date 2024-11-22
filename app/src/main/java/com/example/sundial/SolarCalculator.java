@@ -1,5 +1,4 @@
 package com.example.sundial;
-import android.util.Log;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -197,19 +196,6 @@ public class SolarCalculator {
         double azimuth_deg = (azimuth_rad * RADIANS_TO_DEGREES + 360) % 360;
         return new double[]{altitude_deg, azimuth_deg};
 
-
-    }
-
-    public double getAltitude() {
-
-
-        return calculateAltitudeAndAzimuth()[0];
-
-    }
-
-    public double getAzimuth() {
-
-        return calculateAltitudeAndAzimuth()[1];
 
     }
 

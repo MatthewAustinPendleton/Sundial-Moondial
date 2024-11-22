@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
@@ -17,9 +19,7 @@ public class SundialView extends View {
     private float shadowWidth = 0f;
     private float shadowDirection = 0f;
     private int outermostRadius;
-    private int middleRadius2;
-
-    private static float SHADOW_ANGLE_OFFSET = 5.0f;
+    private int middleRadius;
 
     public SundialView(Context context, AttributeSet attributeSet) {
 
@@ -56,8 +56,8 @@ public class SundialView extends View {
 
         // Draw the Sundial circles
         outermostRadius = Math.min(getWidth(), getHeight()) / 2 - 60;
-        int middleRadius = outermostRadius - 75;
-        middleRadius2 = middleRadius - 40;
+        middleRadius = outermostRadius - 75;
+        int middleRadius2 = middleRadius - 40;
         int innermostRadius = middleRadius2 - 40;
 
         // Outer Circle
@@ -158,30 +158,57 @@ public class SundialView extends View {
 
     private void drawShadow(Canvas canvas, int centerX, int centerY) {
         if (shadowLength > 0) {
-            // Clamp shadow length to the second inner circle
-            float maxShadowLength = middleRadius2;
-            float scaledShadowLength = Math.max(shadowLength, maxShadowLength);
+            // Clamp shadow length
+            float maxShadowLength = outermostRadius - 10;
+            float scaledShadowLength = Math.min(shadowLength, maxShadowLength);
 
-            // Adjust azimuth for shadow direction and map to canvas coordinates
-            float adjustedDirection = 360 - shadowDirection + 90 - SHADOW_ANGLE_OFFSET; // Correct for coordinate system
+            // Convert shadow direction to canvas angle
+            // Shadow direction is in compass coords (0° = North, clockwise)
+            // Need to convert to canvas coords (0° = East, clockwise)
+            float canvasAngle = (shadowDirection + 270) % 360;
 
-            // Normalize to [0°, 360°] only once
-            adjustedDirection = (adjustedDirection + 360) % 360;
+            Log.d("ShadowDebug", String.format(
+                    "Shadow calc: direction=%.2f, canvasAngle=%.2f",
+                    shadowDirection, canvasAngle));
 
-            // Calculate the end point of the shadow
-            float endX = (float) (centerX + scaledShadowLength * Math.cos(Math.toRadians(adjustedDirection)));
-            float endY = (float) (centerY - scaledShadowLength * Math.sin(Math.toRadians(adjustedDirection)));
+            // Draw only in upper half of sundial (angle between 180° and 360°)
+            if (canvasAngle < 180) {
+                return;
+            }
 
-            // Log for debugging
-            Log.d("ShadowDraw", String.format(
-                    "Shadow Draw - Start: (%d, %d), End: (%.2f, %.2f), Length: %.2f, Azimuth: %.2f, Adjusted: %.2f",
-                    centerX, centerY, endX, endY, scaledShadowLength, shadowDirection, adjustedDirection
-            ));
+            // Clamp the shadow width
+            float cappedWidth = Math.min(shadowWidth, scaledShadowLength / 3.0f);
+            float halfAngularWidth = Math.min(cappedWidth / 2.0f, 7.5f); // Max 15° total width
 
-            // Draw the shadow
-            paint.setStrokeWidth(Math.min(shadowWidth, 10)); // Clamp shadow width for visibility
+            // Calculate angles for the pizza slice
+            float leftAngle = canvasAngle - halfAngularWidth;
+            float rightAngle = canvasAngle + halfAngularWidth;
+
+            // Clamp angles to stay in upper half
+            if (leftAngle < 180) leftAngle = 180;
+            if (rightAngle > 360) rightAngle = 360;
+
+            // Create the pizza slice path
+            Path shadowPath = new Path();
+            shadowPath.moveTo(centerX, centerY);
+
+            RectF arcBounds = new RectF(
+                    centerX - scaledShadowLength,
+                    centerY - scaledShadowLength,
+                    centerX + scaledShadowLength,
+                    centerY + scaledShadowLength
+            );
+
+            float sweepAngle = rightAngle - leftAngle;
+
+            shadowPath.arcTo(arcBounds, leftAngle, sweepAngle, false);
+            shadowPath.lineTo(centerX, centerY);
+            shadowPath.close();
+
+            paint.setStyle(Paint.Style.FILL);
             paint.setColor(Color.DKGRAY);
-            canvas.drawLine(centerX, centerY, endX, endY, paint);
+            paint.setAlpha(128);
+            canvas.drawPath(shadowPath, paint);
         }
     }
 
@@ -191,9 +218,9 @@ public class SundialView extends View {
 
     }
 
-    public int getMiddleRadius2() {
+    public int getMiddleRadius() {
 
-        return middleRadius2;
+        return middleRadius;
 
     }
 
